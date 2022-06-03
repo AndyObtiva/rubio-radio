@@ -29,7 +29,7 @@ class Radio
       'http://all.api.radio-browser.info/json/'
     end
 
-    def topvote(n = 100)
+    def topvote(n = 10)
       content = URI.parse(base_url + "stations/topvote/#{n}")
       JSON[content.read].map do |s|
         Station.new(s['name'], s['language'], s['url_resolved'])
@@ -76,7 +76,11 @@ class Radio
   attr_accessor :stations, :player
 
   def initialize(backend)
-    @stations = RadioBrowser.topvote(100)
+    @stations = RadioBrowser.topvote(10).map{|i| ["◯", i.name, i.language, i.url]}
+    def @stations.play
+      @playing ? '■' : '▶'
+    end
+
     @stations_original = @stations.dup
     @idx = nil
     @pid = nil
@@ -107,7 +111,7 @@ class Radio
   def play_at(idx)
     station = stations[idx]
     begin
-      @player.play(station.url)
+      @player.play(station[3])
     rescue StandardError => e
       message_box(e.message)
       raise e
@@ -143,7 +147,7 @@ class Radio
               @stations.replace @stations_original
               unless filter_value.empty?
                 stations.filter! do |row_data|
-                  row_data.name.downcase.include?(filter_value.downcase)
+                  row_data[1].downcase.include?(filter_value.downcase)
                 end
               end
             end
